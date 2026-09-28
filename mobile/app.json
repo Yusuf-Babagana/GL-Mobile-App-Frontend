@@ -1,27 +1,76 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "GLAPP",
+    "slug": "GLAPP",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "scheme": "glapp",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.mobile"
+      "bundleIdentifier": "com.globalinkmarketplace.app",
+      "buildNumber": "1",
+      "appleTeamId": "",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Globalink needs access to your photo library to let you upload a profile picture.",
+        "NSCameraUsageDescription": "Globalink needs camera access to let you take a profile picture.",
+        "NSLocationWhenInUseUsageDescription": "Globalink uses your location to show nearby stores and services.",
+        "NSNotificationsUsageDescription": "Globalink sends notifications for order updates and promotions."
+      },
+      "associatedDomains": []
     },
     "android": {
+      "package": "com.globalinkmarketplace.app",
+      "versionCode": 20,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
+        "backgroundColor": "#FFFFFF"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mobile"
+      "config": {
+        "googleMaps": {
+          "apiKey": "REPLACE_WITH_YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+        }
+      },
+      "permissions": [
+        "INTERNET"
+      ],
+      "blockedPermissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "glapp",
+              "host": "*",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "glappbackend.pythonanywhere.com",
+              "pathPrefix": "/promotion"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -35,24 +84,39 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#ffffff"
         }
       ],
+      "expo-web-browser",
+      "expo-video",
+      "expo-notifications",
       [
-        "@sentry/react-native/expo",
+        "@stripe/stripe-react-native",
+        {}
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-localization",
+      "expo-secure-store",
+      "expo-sharing",
+      [
+        "expo-status-bar",
         {
-          "url": "https://sentry.io/",
-          "project": "ecommerce-tut",
-          "organization": "codesistency-gs"
+          "style": "dark",
+          "hidden": false
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d83bbee6-83a0-44eb-9111-1f440548640f"
+      }
+    },
+    "owner": "babagana1"
   }
 }
