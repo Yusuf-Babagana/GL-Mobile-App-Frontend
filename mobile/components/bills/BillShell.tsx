@@ -3,7 +3,7 @@ import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import React from 'react';
+import React, { useRef } from 'react';
 import { KeyboardAvoidingView, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -94,5 +94,31 @@ export function useFinishPurchase() {
             return null;
         }
         return res.message || 'Order submitted for processing. Check history for status updates.';
+    };
+}
+
+/**
+ * One key per distinct purchase. It is kept across retries after a network failure
+ * (no response) so the server can recognise the retry, but only while the purchase
+ * details are unchanged: pass the details as `fingerprint`, and any change (another
+ * phone number, plan, amount...) gets a fresh key. It is dropped once the server has
+ * given a definite answer.
+ */
+export function useIdempotencyKey() {
+    const ref = useRef<{ key: string; fingerprint: string } | null>(null);
+    return {
+        get: (fingerprint: string) => {
+            if (!ref.current || ref.current.fingerprint !== fingerprint) {
+                ref.current = {
+                    key: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`,
+                    fingerprint,
+                };
+            }
+            return ref.current.key;
+        },
+        settle: (err?: any) => {
+            // Keep the key only when we never heard back from the server.
+            if (!err || err.response) ref.current = null;
+        },
     };
 }

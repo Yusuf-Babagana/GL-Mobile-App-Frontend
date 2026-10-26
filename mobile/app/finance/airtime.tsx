@@ -1,5 +1,5 @@
 import NetworkSelector, { NETWORKS } from '@/components/data/NetworkSelector';
-import { BillShell, Field, Notice, errMsg, inputClass, useFinishPurchase } from '@/components/bills/BillShell';
+import { BillShell, Field, Notice, errMsg, inputClass, useFinishPurchase, useIdempotencyKey } from '@/components/bills/BillShell';
 import { Button } from '@/components/ui/Button';
 import { useWallet } from '@/context/WalletContext';
 import { marketAPI } from '@/lib/marketApi';
@@ -13,6 +13,7 @@ export default function AirtimeScreen() {
     const router = useRouter();
     const { availableBalance } = useWallet();
     const finish = useFinishPurchase();
+    const idem = useIdempotencyKey();
     const [network, setNetwork] = useState(NETWORKS[0].id);
     const [phone, setPhone] = useState('');
     const [amountText, setAmountText] = useState('');
@@ -30,7 +31,8 @@ export default function AirtimeScreen() {
     const handlePurchase = async () => {
         setLoading(true);
         try {
-            const res = await marketAPI.purchaseAirtime({ service_id: serviceId, phone, amount });
+            const res = await marketAPI.purchaseAirtime({ service_id: serviceId, phone, amount }, idem.get(`${serviceId}|${phone}|${amount}`));
+            idem.settle();
             const pending = await finish(res, {
                 network: networkName, planName: `Airtime ₦${amount.toLocaleString()}`, amount: String(amount), phone,
             });
@@ -39,6 +41,7 @@ export default function AirtimeScreen() {
                 router.push('/market/data-history');
             }
         } catch (err: any) {
+            idem.settle(err);
             Alert.alert('Failed', errMsg(err));
         } finally {
             setLoading(false);

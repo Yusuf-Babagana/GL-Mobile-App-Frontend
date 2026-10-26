@@ -1,4 +1,4 @@
-import { BillShell, Field, Notice, errMsg, inputClass, useFinishPurchase } from '@/components/bills/BillShell';
+import { BillShell, Field, Notice, errMsg, inputClass, useFinishPurchase, useIdempotencyKey } from '@/components/bills/BillShell';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { useWallet } from '@/context/WalletContext';
@@ -19,6 +19,7 @@ export default function CableScreen() {
     const router = useRouter();
     const { availableBalance } = useWallet();
     const finish = useFinishPurchase();
+    const idem = useIdempotencyKey();
     const [provider, setProvider] = useState('dstv');
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loadingPlans, setLoadingPlans] = useState(false);
@@ -73,7 +74,8 @@ export default function CableScreen() {
         try {
             const res = await marketAPI.purchaseCable({
                 cable_tv: provider, package_id: plan!.package_id, smartcard, phone,
-            });
+            }, idem.get(`${provider}|${plan!.package_id}|${smartcard}|${phone}`));
+            idem.settle();
             const pending = await finish(res, {
                 network: PROVIDERS.find((p) => p.value === provider)!.label,
                 planName: plan!.name, amount: String(price), phone,
@@ -83,6 +85,7 @@ export default function CableScreen() {
                 router.push('/market/data-history');
             }
         } catch (err: any) {
+            idem.settle(err);
             Alert.alert('Failed', errMsg(err));
         } finally {
             setLoading(false);

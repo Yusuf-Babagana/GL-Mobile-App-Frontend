@@ -12,6 +12,9 @@ const handleApiError = (error: any) => {
     }
 };
 
+/** A retried purchase carries the same key, so the server returns the first result instead of buying twice. */
+const idemHeaders = (key?: string) => (key ? { headers: { 'Idempotency-Key': key } } : undefined);
+
 export const marketAPI = {
     // Expose core axios methods
     get: api.get,
@@ -275,13 +278,13 @@ export const marketAPI = {
         return response.data.plans;
     },
 
-    purchaseData: async (data: { service_id: string; variation_code: string; phone: string; amount: number }) => {
-        const response = await api.post('/finance/data/purchase/', data);
+    purchaseData: async (data: { service_id: string; variation_code: string; phone: string; amount: number }, idempotencyKey?: string) => {
+        const response = await api.post('/finance/data/purchase/', data, idemHeaders(idempotencyKey));
         return response.data;
     },
 
-    purchaseAirtime: async (data: { service_id: string; phone: string; amount: number }) => {
-        const response = await api.post('/finance/airtime/purchase/', data);
+    purchaseAirtime: async (data: { service_id: string; phone: string; amount: number }, idempotencyKey?: string) => {
+        const response = await api.post('/finance/airtime/purchase/', data, idemHeaders(idempotencyKey));
         return { ...response.data, http_status: response.status };
     },
 
@@ -295,8 +298,8 @@ export const marketAPI = {
         return response.data as { customer_name: string };
     },
 
-    purchaseElectricity: async (data: { disco: string; meter_no: string; meter_type: string; phone: string; amount: number }) => {
-        const response = await api.post('/finance/electricity/purchase/', data);
+    purchaseElectricity: async (data: { disco: string; meter_no: string; meter_type: string; phone: string; amount: number }, idempotencyKey?: string) => {
+        const response = await api.post('/finance/electricity/purchase/', data, idemHeaders(idempotencyKey));
         return { ...response.data, http_status: response.status };
     },
 
@@ -310,8 +313,8 @@ export const marketAPI = {
         return response.data as { customer_name: string };
     },
 
-    purchaseCable: async (data: { cable_tv: string; package_id: string; smartcard: string; phone: string }) => {
-        const response = await api.post('/finance/cable/purchase/', data);
+    purchaseCable: async (data: { cable_tv: string; package_id: string; smartcard: string; phone: string }, idempotencyKey?: string) => {
+        const response = await api.post('/finance/cable/purchase/', data, idemHeaders(idempotencyKey));
         return { ...response.data, http_status: response.status };
     },
 
@@ -444,6 +447,26 @@ export const marketAPI = {
     confirmOrderReceipt: async (orderId: number) => {
         try {
             const response = await api.post(`/market/buyer/orders/${orderId}/confirm/`);
+            return response.data;
+        } catch (error: any) {
+            if (error.response) throw error.response.data;
+            throw error;
+        }
+    },
+
+    openDispute: async (orderId: number, reason: string, description: string) => {
+        try {
+            const response = await api.post(`/market/buyer/orders/${orderId}/dispute/`, { reason, description });
+            return response.data;
+        } catch (error: any) {
+            if (error.response) throw error.response.data;
+            throw error;
+        }
+    },
+
+    withdrawDispute: async (orderId: number) => {
+        try {
+            const response = await api.post(`/market/buyer/orders/${orderId}/dispute/withdraw/`);
             return response.data;
         } catch (error: any) {
             if (error.response) throw error.response.data;

@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/Colors";
 import { marketAPI } from "@/lib/marketApi";
+import DisputeModal from "@/components/orders/DisputeModal";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ export default function OrderDetailScreen() {
     const [order, setOrder] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [showDispute, setShowDispute] = useState(false);
 
     const fetchOrder = async () => {
         if (!id || isNaN(Number(id))) return;
@@ -46,6 +48,26 @@ export default function OrderDetailScreen() {
     }, [id]);
 
     // --- ACTIONS ---
+
+    const handleWithdrawDispute = () => {
+        Alert.alert("Withdraw dispute", "Withdraw your dispute? You will then be able to confirm receipt.", [
+            { text: "No", style: "cancel" },
+            {
+                text: "Yes, withdraw",
+                onPress: async () => {
+                    setIsUpdating(true);
+                    try {
+                        await marketAPI.withdrawDispute(order.id);
+                        fetchOrder();
+                    } catch (err: any) {
+                        Alert.alert("Error", err?.message || "Could not withdraw the dispute.");
+                    } finally {
+                        setIsUpdating(false);
+                    }
+                },
+            },
+        ]);
+    };
 
     const handleDispatch = async () => {
         setIsUpdating(true);
@@ -127,7 +149,7 @@ export default function OrderDetailScreen() {
 
     return (
         <View className="flex-1 bg-gray-50">
-            <StatusBar barStyle="light-content" backgroundColor="#111827" />
+            <StatusBar barStyle="light-content" />
 
             {/* Header */}
             <View className="bg-slate-900 pb-6 px-6 rounded-b-[32px] z-10" style={{ paddingTop: insets.top + 12 }}>
@@ -290,12 +312,12 @@ export default function OrderDetailScreen() {
                     );
                 })()}
 
-                <View className="h-32" />
+                <View style={{ height: 128 + insets.bottom }} />
             </ScrollView>
 
             {/* SELLER: Dispatch Button */}
             {isSeller && order.delivery_status === 'pending' && (
-                <View className="absolute bottom-0 w-full p-6 bg-white border-t border-gray-100 pb-10">
+                <View className="absolute bottom-0 w-full px-6 pt-6 bg-white border-t border-gray-100" style={{ paddingBottom: insets.bottom + 24 }}>
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={handleDispatch}
@@ -311,7 +333,7 @@ export default function OrderDetailScreen() {
 
             {/* BUYER: Cancel Order — only while the seller hasn't dispatched yet */}
             {isBuyer && order.delivery_status === 'pending' && (
-                <View className="absolute bottom-0 w-full p-6 bg-white border-t border-gray-100 pb-10">
+                <View className="absolute bottom-0 w-full px-6 pt-6 bg-white border-t border-gray-100" style={{ paddingBottom: insets.bottom + 24 }}>
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={handleCancel}
@@ -326,8 +348,8 @@ export default function OrderDetailScreen() {
             )}
 
             {/* BUYER: Track + Confirm Receipt — only when shipped */}
-            {isBuyer && order.delivery_status === 'shipped' && (
-                <View className="absolute bottom-0 w-full p-6 bg-white border-t border-gray-100 pb-10">
+            {isBuyer && order.delivery_status === 'shipped' && order.payment_status === 'paid' && (
+                <View className="absolute bottom-0 w-full px-6 pt-6 bg-white border-t border-gray-100" style={{ paddingBottom: insets.bottom + 24 }}>
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => router.push(`/orders/track?orderId=${order.id}` as any)}
@@ -351,7 +373,38 @@ export default function OrderDetailScreen() {
                             </>
                         )}
                     </TouchableOpacity>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => setShowDispute(true)} className="items-center pt-4">
+                        <Text className="text-red-600 font-bold text-sm">Didn't get it / something's wrong? Report a problem</Text>
+                    </TouchableOpacity>
                 </View>
+            )}
+
+            {/* BUYER: dispute — paid + dispatched but not confirmed (the 'shipped' bar has its own link) */}
+            {isBuyer && order.payment_status === 'paid' && ['ready_for_pickup', 'picked_up', 'in_transit', 'delivered'].includes(order.delivery_status) && (
+                <View className="absolute bottom-0 w-full px-6 pt-6 bg-white border-t border-gray-100" style={{ paddingBottom: insets.bottom + 24 }}>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => setShowDispute(true)} className="py-4 rounded-2xl items-center border-2 border-red-200">
+                        <Text className="text-red-600 font-bold text-base">Report a problem</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {isBuyer && order.payment_status === 'disputed' && (
+                <View className="absolute bottom-0 w-full px-6 pt-6 bg-amber-50 border-t border-amber-200" style={{ paddingBottom: insets.bottom + 24 }}>
+                    <Text className="text-amber-800 font-black text-base mb-1">Dispute open</Text>
+                    <Text className="text-amber-700 text-sm mb-3">Your payment is frozen while our team reviews this. The seller will not be paid until it is resolved.</Text>
+                    <TouchableOpacity activeOpacity={0.7} onPress={handleWithdrawDispute} disabled={isUpdating} className="py-3 rounded-2xl items-center bg-white border border-amber-300">
+                        <Text className="text-amber-800 font-bold">Withdraw dispute</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {isBuyer && order?.id && (
+                <DisputeModal
+                    visible={showDispute}
+                    orderId={order.id}
+                    onClose={() => setShowDispute(false)}
+                    onOpened={() => { setShowDispute(false); Alert.alert("Dispute opened", "We'll review it and get back to you. Your payment is frozen until then."); fetchOrder(); }}
+                />
             )}
         </View>
     );

@@ -1,4 +1,4 @@
-import { BillShell, Field, Notice, errMsg, inputClass, useFinishPurchase } from '@/components/bills/BillShell';
+import { BillShell, Field, Notice, errMsg, inputClass, useFinishPurchase, useIdempotencyKey } from '@/components/bills/BillShell';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { useWallet } from '@/context/WalletContext';
@@ -16,6 +16,7 @@ export default function ElectricityScreen() {
     const router = useRouter();
     const { availableBalance } = useWallet();
     const finish = useFinishPurchase();
+    const idem = useIdempotencyKey();
     const [discos, setDiscos] = useState<{ label: string; value: string }[]>([]);
     const [minimum, setMinimum] = useState(1000);
     const [fee, setFee] = useState(0);
@@ -71,8 +72,9 @@ export default function ElectricityScreen() {
         try {
             const res = await marketAPI.purchaseElectricity({
                 disco: disco!, meter_no: meterNo, meter_type: meterType, phone, amount,
-            });
+            }, idem.get(`${disco}|${meterType}|${meterNo}|${phone}|${amount}`));
             const discoName = discos.find((d) => d.value === disco)?.label ?? 'Electricity';
+            idem.settle();
             const pending = await finish(res, {
                 network: discoName, planName: `${meterType} meter ${meterNo}`, amount: String(total), phone,
             });
@@ -81,6 +83,7 @@ export default function ElectricityScreen() {
                 router.push('/market/data-history');
             }
         } catch (err: any) {
+            idem.settle(err);
             Alert.alert('Failed', errMsg(err));
         } finally {
             setLoading(false);

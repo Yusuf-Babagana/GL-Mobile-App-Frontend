@@ -2,6 +2,7 @@ import NetworkSelector, { NETWORKS } from '@/components/data/NetworkSelector';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { useWallet } from '@/context/WalletContext';
+import { useIdempotencyKey } from '@/components/bills/BillShell';
 import { fetchDataPlans } from '@/src/services/financeService';
 import { marketAPI } from '@/lib/marketApi';
 import { useTabBarSpace } from '@/hooks/useTabBarSpace';
@@ -21,6 +22,7 @@ export default function DataPurchaseScreen() {
     const [dataType, setDataType] = useState<string | null>(null);
     const [selectedPlan, setSelectedPlan] = useState<any>(null);
     const [phoneNumber, setPhoneNumber] = useState('');
+    const idem = useIdempotencyKey();
     const [loading, setLoading] = useState(false);
     const [fetchingPlans, setFetchingPlans] = useState(false);
 
@@ -124,7 +126,8 @@ export default function DataPurchaseScreen() {
                 variation_code: planId,
                 phone: phoneNumber,
                 amount: planPrice,
-            });
+            }, idem.get(`${selectedNetwork}|${planId}|${phoneNumber}`));
+            idem.settle();
 
             await refreshWallet();
             router.replace({
@@ -139,7 +142,8 @@ export default function DataPurchaseScreen() {
                 },
             });
         } catch (err: any) {
-            Alert.alert("Failed", err.toString());
+            idem.settle(err);
+            Alert.alert("Failed", err?.response?.data?.error || err?.response?.data?.message || "Network problem. If you were charged, check your history before trying again.");
         } finally {
             setLoading(false);
         }
