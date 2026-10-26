@@ -4,14 +4,16 @@ import { Select } from '@/components/ui/Select';
 import { useWallet } from '@/context/WalletContext';
 import { fetchDataPlans } from '@/src/services/financeService';
 import { marketAPI } from '@/lib/marketApi';
+import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { Stack, useRouter } from 'expo-router';
-import { Smartphone } from 'lucide-react-native';
+import { Smartphone, Phone, Zap, Tv } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 export default function DataPurchaseScreen() {
+    const tabSpace = useTabBarSpace();
     const router = useRouter();
     const { availableBalance, refreshWallet } = useWallet();
     const [selectedNetwork, setSelectedNetwork] = useState(NETWORKS[0].id);
@@ -149,7 +151,7 @@ export default function DataPurchaseScreen() {
     return (
         <SafeAreaView className="flex-1 bg-background">
             <Stack.Screen options={{ headerShown: false }} />
-            <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+            <StatusBar barStyle="dark-content" />
 
             <View className="flex-row items-center px-5 py-4 bg-white border-b border-slate-100">
                 <Image
@@ -163,12 +165,29 @@ export default function DataPurchaseScreen() {
                 </View>
             </View>
 
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
             <ScrollView
-                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                contentContainerStyle={{ padding: 24, paddingBottom: tabSpace }}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
+                <View className="flex-row gap-3 mb-6">
+                    {[
+                        { label: 'Airtime', href: '/finance/airtime', Icon: Phone },
+                        { label: 'Electricity', href: '/finance/electricity', Icon: Zap },
+                        { label: 'Cable TV', href: '/finance/cable', Icon: Tv },
+                    ].map(({ label, href, Icon }) => (
+                        <TouchableOpacity
+                            key={href}
+                            onPress={() => router.push(href as any)}
+                            className="flex-1 bg-white border border-gray-200 rounded-2xl py-3 items-center"
+                        >
+                            <Icon size={20} color="#329629" />
+                            <Text className="text-slate-900 font-bold text-xs mt-1">{label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
                 <NetworkSelector selectedNetwork={selectedNetwork} onSelectNetwork={setSelectedNetwork} />
 
                 <Text className="text-gray-700 font-bold text-xs mb-2">Phone Number:</Text>

@@ -18,8 +18,11 @@ interface DataPurchase {
 }
 
 function parseDescription(desc: string) {
-  const match = desc.match(/^Nellobyte Data:\s*(\S+)\s*\(([^)]*)\)\s*to\s*(\S+)/i);
+  const match = desc.match(/^(?:Nellobyte )?Data:\s*(\S+)\s*\(([^)]*)\)\s*to\s*(\S+)/i);
   if (match) return { network: match[1], plan: match[2], phone: match[3] };
+  // Airtime / Electricity / Cable bills: "<Type>: <details> ..."
+  const bill = desc.match(/^(Airtime|Electricity|Cable):\s*(.*?)(?:\s*\(.*)?(?:\s*\|.*)?$/i);
+  if (bill) return { network: bill[1], plan: bill[2], phone: '' };
   return { network: 'N/A', plan: 'N/A', phone: 'N/A' };
 }
 
@@ -76,7 +79,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:linear-gr
 <div class="row"><span class="label">Status</span><span class="value green">Successful ✓</span></div>
 </div>
 <div class="stamp"><div class="stamp-inner"><span>Paid & Verified</span></div></div>
-<div class="footer"><div class="footer-text">GLAPP DATA • Nellobyte Systems</div></div>
+<div class="footer"><div class="footer-text">GLAPP DATA</div></div>
 </div></body></html>`;
 
 export default function DataHistoryScreen() {

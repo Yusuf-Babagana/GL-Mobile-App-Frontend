@@ -140,9 +140,13 @@ export const marketAPI = {
         shipping_address: { address: string; city: string; phone: string };
         payment_method?: string;
         pin?: string;
-    }) => {
+    }, idempotencyKey?: string) => {
         try {
-            const response = await api.post('/market/checkout/', payload);
+            const response = await api.post(
+                '/market/checkout/',
+                payload,
+                idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : undefined,
+            );
             return response.data;
         } catch (error) {
             return handleApiError(error);
@@ -274,6 +278,41 @@ export const marketAPI = {
     purchaseData: async (data: { service_id: string; variation_code: string; phone: string; amount: number }) => {
         const response = await api.post('/finance/data/purchase/', data);
         return response.data;
+    },
+
+    purchaseAirtime: async (data: { service_id: string; phone: string; amount: number }) => {
+        const response = await api.post('/finance/airtime/purchase/', data);
+        return { ...response.data, http_status: response.status };
+    },
+
+    fetchDiscos: async () => {
+        const response = await api.get('/finance/electricity/discos/');
+        return response.data as { discos: { code: string; name: string }[]; meter_types: string[]; minimum_amount: string; service_fee: string };
+    },
+
+    verifyMeter: async (disco: string, meter_no: string, meter_type: string) => {
+        const response = await api.get('/finance/electricity/verify/', { params: { disco, meter_no, meter_type } });
+        return response.data as { customer_name: string };
+    },
+
+    purchaseElectricity: async (data: { disco: string; meter_no: string; meter_type: string; phone: string; amount: number }) => {
+        const response = await api.post('/finance/electricity/purchase/', data);
+        return { ...response.data, http_status: response.status };
+    },
+
+    fetchCablePlans: async (cable_tv: string) => {
+        const response = await api.get('/finance/cable/plans/', { params: { cable_tv } });
+        return response.data.results as { package_id: string; name: string; price: string }[];
+    },
+
+    verifySmartcard: async (cable_tv: string, smartcard: string) => {
+        const response = await api.get('/finance/cable/verify/', { params: { cable_tv, smartcard } });
+        return response.data as { customer_name: string };
+    },
+
+    purchaseCable: async (data: { cable_tv: string; package_id: string; smartcard: string; phone: string }) => {
+        const response = await api.post('/finance/cable/purchase/', data);
+        return { ...response.data, http_status: response.status };
     },
 
     updateBVN: async (bvn: string) => {

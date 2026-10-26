@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const receiptHTML = (p: {
   orderId: string; network: string; planName: string; amount: string;
-  phone: string; date: string; time: string;
+  phone: string; date: string; time: string; token?: string;
 }) => `
 <!DOCTYPE html>
 <html>
@@ -56,12 +56,13 @@ body{font-family:Helvetica,Arial,sans-serif;background:#f0fdf4;display:flex;just
 <div class="row"><span class="label">Network</span><span class="value">${p.network}</span></div>
 <div class="row"><span class="label">Plan</span><span class="value">${p.planName}</span></div>
 <div class="row"><span class="label">Mobile Number</span><span class="value">${p.phone}</span></div>
+${p.token ? `<div class="row"><span class="label">Token</span><span class="value">${p.token}</span></div>` : ''}
 <div class="row"><span class="label">Date</span><span class="value">${p.date}</span></div>
 <div class="row"><span class="label">Time</span><span class="value">${p.time}</span></div>
 <div class="row"><span class="label">Status</span><span class="value green">Successful</span></div>
 </div>
 <div class="stamp"><div class="stamp-box"><span>Paid &amp; Verified</span></div></div>
-<div class="footer"><div class="footer-text">GLAPP DATA &bull; Nellobyte Systems</div></div>
+<div class="footer"><div class="footer-text">GLAPP DATA</div></div>
 </div>
 </body>
 </html>`;
@@ -82,7 +83,7 @@ export default function ReceiptScreen() {
 
   const params = useLocalSearchParams<{
     orderId: string; network: string; planName: string;
-    amount: string; phone: string; date: string; status: string;
+    amount: string; phone: string; date: string; status: string; token?: string;
   }>();
 
   const displayDate = params.date || new Date().toLocaleDateString('en-NG', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -108,7 +109,7 @@ export default function ReceiptScreen() {
       const html = receiptHTML({
         orderId: params.orderId || 'N/A', network: params.network || 'N/A',
         planName: params.planName || 'N/A', amount: params.amount || '0',
-        phone: params.phone || 'N/A', date: displayDate, time: displayTime,
+        phone: params.phone || 'N/A', date: displayDate, time: displayTime, token: params.token,
       });
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       const pdfName = `GLAPP_DATA_${params.orderId || 'receipt'}.pdf`;
@@ -172,6 +173,12 @@ export default function ReceiptScreen() {
                 <View style={{ borderStyle: 'dashed', borderTopWidth: 1, borderColor: '#e2e8f0' }} />
                 <DetailRow label="Mobile Number" value={params.phone || 'N/A'} />
                 <View style={{ borderStyle: 'dashed', borderTopWidth: 1, borderColor: '#e2e8f0' }} />
+                {!!params.token && (
+                  <>
+                    <DetailRow label="Token" value={params.token} />
+                    <View style={{ borderStyle: 'dashed', borderTopWidth: 1, borderColor: '#e2e8f0' }} />
+                  </>
+                )}
                 <DetailRow label="Date" value={displayDate} />
                 <View style={{ borderStyle: 'dashed', borderTopWidth: 1, borderColor: '#e2e8f0' }} />
                 <DetailRow label="Time" value={displayTime} />
@@ -193,7 +200,7 @@ export default function ReceiptScreen() {
               </View>
 
               <View className="items-center pb-5">
-                <Text className="text-gray-300 text-[10px] font-medium">GLAPP DATA • Nellobyte Systems</Text>
+                <Text className="text-gray-300 text-[10px] font-medium">GLAPP DATA</Text>
               </View>
             </View>
           </ViewShot>
