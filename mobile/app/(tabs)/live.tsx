@@ -20,8 +20,11 @@ import {
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBarSpace } from '@/hooks/useTabBarSpace';
+import { initialContentWidth } from '@/lib/layout';
 
-const { height, width } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
+const width = initialContentWidth();
 
 interface Ad {
     id: number;
@@ -101,6 +104,7 @@ const ProgressDots = ({ total, active }: { total: number; active: number }) => {
 
 const VideoAdItem = ({ item, isVisible, screenActive }: { item: Ad; isVisible: boolean; screenActive: boolean }) => {
     const router = useRouter();
+    const tabSpace = useTabBarSpace(0);
     const finalVideoUrl = getVideoUrl(item.video_url || item.video || '');
     const [isPlaying, setIsPlaying] = useState(true);
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -176,7 +180,7 @@ const VideoAdItem = ({ item, isVisible, screenActive }: { item: Ad; isVisible: b
                 <Animated.View
                     style={[
                         styles.rightSidebar,
-                        { opacity: fadeAnim, transform: [{ translateX: slideAnim }] }
+                        { bottom: 260 + (tabSpace + 12 - 40), opacity: fadeAnim, transform: [{ translateX: slideAnim }] }
                     ]}
                 >
                     <View style={styles.profileContainer}>
@@ -235,7 +239,7 @@ const VideoAdItem = ({ item, isVisible, screenActive }: { item: Ad; isVisible: b
                         pointerEvents="none"
                     />
 
-                    <View style={styles.bottomContent}>
+                    <View style={[styles.bottomContent, { paddingBottom: tabSpace + 12 }]}>
                         <TouchableOpacity style={styles.storeRow} activeOpacity={0.7} onPress={() => router.push(`/product/${item.id}`)}>
                             <View style={styles.storeBadge}>
                                 <Ionicons name="storefront" size={14} color={Colors.primary} />

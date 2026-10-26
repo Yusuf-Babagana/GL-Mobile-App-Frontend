@@ -1,68 +1,90 @@
+// app/_layout.tsx
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ResponsiveFrame } from "@/components/ResponsiveFrame";
+import { AuthProvider } from "@/context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
+import { WalletProvider } from "@/context/WalletContext";
+import { OnboardingProvider } from "@/context/OnboardingContext";
+import "@/lib/i18n";
+import { loadSavedLanguage, default as i18n } from "@/lib/i18n";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Stack } from "expo-router";
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { LogBox, View } from "react-native";
+import { I18nextProvider } from 'react-i18next';
 import "../global.css";
-import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ClerkProvider } from "@clerk/clerk-expo";
-import { tokenCache } from "@clerk/clerk-expo/token-cache";
-import * as Sentry from "@sentry/react-native";
-import { StripeProvider } from "@stripe/stripe-react-native";
 
-Sentry.init({
-  dsn: "https://fb6731b90610cc08333e6c16ffac5724@o4509813037137920.ingest.de.sentry.io/4510451611205712",
+if (typeof ErrorUtils !== 'undefined') {
+  const originalHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
+    console.debug('[Crash]', isFatal ? 'FATAL' : 'CAUGHT', error?.message || error);
+    if (originalHandler) originalHandler(error, isFatal);
+  });
+}
 
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,
+SplashScreen.preventAutoHideAsync();
 
-  // Enable Logs
-  enableLogs: true,
+LogBox.ignoreLogs([
+  "Expo Go",
+  "The 'expo-notifications' libraries are not fully supported in Expo Go",
+  "[Reanimated] Reading from `value` during component render",
+  "[Reanimated] Writing to `value` during component render",
+  "[Reanimated]",
+]);
 
-  // Configure Session Replay
-  replaysSessionSampleRate: 1.0,
-  replaysOnErrorSampleRate: 1,
-  integrations: [Sentry.mobileReplayIntegration()],
+const queryClient = new QueryClient();
 
-  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
-  // spotlight: __DEV__,
-});
+export default function RootLayout() {
+  const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-const queryClient = new QueryClient({
-  queryCache: new QueryCache({
-    onError: (error: any, query) => {
-      Sentry.captureException(error, {
-        tags: {
-          type: "react-query-error",
-          queryKey: query.queryKey[0]?.toString() || "unknon",
-        },
-        extra: {
-          errorMessage: error.message,
-          statusCode: error.response?.status,
-          queryKey: query.queryKey,
-        },
-      });
-    },
-  }),
-  mutationCache: new MutationCache({
-    onError: (error: any) => {
-      // global error handler for all mutations
-      Sentry.captureException(error, {
-        tags: { type: "react-query-mutation-error" },
-        extra: {
-          errorMessage: error.message,
-          statusCode: error.response?.status,
-        },
-      });
-    },
-  }),
-});
+  useEffect(() => {
+    loadSavedLanguage().then((saved) => {
+      if (saved && saved !== 'en') {
+        i18n.changeLanguage(saved);
+      }
+      SplashScreen.hideAsync();
+    });
+  }, []);
 
-export default Sentry.wrap(function RootLayout() {
+  useEffect(() => {
+    if (!isExpoGo) {
+      try {
+        const Notifications = require('expo-notifications');
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+            shouldShowBanner: true,
+            shouldShowList: true,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          }),
+        });
+      } catch (_) {}
+    }
+  }, [isExpoGo]);
+
   return (
-    <ClerkProvider tokenCache={tokenCache}>
-      <QueryClientProvider client={queryClient}>
-        <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}>
-          <Stack screenOptions={{ headerShown: false }} />
-        </StripeProvider>
-      </QueryClientProvider>
-    </ClerkProvider>
+    <AuthProvider>
+      <WalletProvider>
+        <OnboardingProvider>
+          <CartProvider>
+            <QueryClientProvider client={queryClient}>
+              <I18nextProvider i18n={i18n}>
+                <ResponsiveFrame>
+                  <StatusBar style="dark" />
+                  <ErrorBoundary>
+                    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F8FAFC' }, animation: 'fade_from_bottom' }} />
+                  </ErrorBoundary>
+                </ResponsiveFrame>
+              </I18nextProvider>
+            </QueryClientProvider>
+          </CartProvider>
+        </OnboardingProvider>
+      </WalletProvider>
+    </AuthProvider>
   );
-});
+}

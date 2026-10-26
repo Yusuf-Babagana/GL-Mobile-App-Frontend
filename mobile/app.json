@@ -2,7 +2,7 @@
   "expo": {
     "name": "GLAPP",
     "slug": "GLAPP",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "glapp",
@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.globalinkmarketplace.app",
-      "versionCode": 20,
+      "versionCode": 21,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
         "backgroundColor": "#FFFFFF"
